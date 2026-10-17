@@ -193,7 +193,7 @@ window.CoachApp.App = (() => {
                onerror="this.style.display='none'">
         </div>
         <h1 class="about-hero-name">Coach Management</h1>
-        <div class="about-version-badge">Versión 1.0.2</div>
+        <div class="about-version-badge">Versión 1.1.0</div>
         <p class="about-hero-desc">
           Herramienta digital para entrenadores de baloncesto juvenil.
           Registra atletas, controla pagos semanales y genera reportes mensuales.

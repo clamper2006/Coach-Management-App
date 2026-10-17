@@ -1,12 +1,15 @@
 /**
  * components/athletes.js — Gestión de Atletas
- * Coach Management App v1.0.1
+ * Coach Management App v1.1.0
+ *
+ * Cambios v1.1.0:
+ *  - "Crear reporte" abre el modal de reportes (mensuales / deuda general)
  *
  * Cambios v1.0.1:
  *  - Campo "Ayuda Social" en formulario (athlete.ayudaSocial = boolean)
  *  - Badge visual "Ayuda Social" en tarjeta
  *  - Botón ⋮ menú contextual: Editar / Crear reporte / Eliminar
- *  - Reporte PDF individual del mes actual desde el menú contextual
+ *  - Reporte PDF individual del mes actual desde el menú contextual (ahora en utils/athlete-reports.js)
  *  - Al eliminar atleta también se eliminan sus registros de asistencia
  */
 
@@ -138,7 +141,7 @@ window.CoachApp.Athletes = (() => {
       _closeContextMenu(); _openForm(athlete);
     });
     menu.querySelector('#ctx-report')?.addEventListener('click', () => {
-      _closeContextMenu(); _generateAthleteReport(athlete);
+      _closeContextMenu(); window.CoachApp.ReportModal.open(athlete);
     });
     menu.querySelector('#ctx-delete')?.addEventListener('click', () => {
       _closeContextMenu(); _confirmDelete(athlete.id, container);
@@ -377,220 +380,10 @@ window.CoachApp.Athletes = (() => {
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // REPORTE PDF INDIVIDUAL (v1.0.1)
-  // Mes actual · asistencia · pago (excluido si ayudaSocial)
+  // REPORTES (v1.1.0)
+  // "Crear reporte" abre components/report-modal.js; el PDF mensual individual
+  // (antes aquí) vive ahora en utils/athlete-reports.js → generateMonthlyReport.
   // ════════════════════════════════════════════════════════════════════════
-
-  const _generateAthleteReport = async (athlete) => {
-    window.CoachApp.App.showToast('⏳ Generando reporte...');
-    try {
-      if (typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined') {
-        throw new Error('jsPDF no disponible. Requiere conexión a internet la primera vez.');
-      }
-
-      const { jsPDF }    = window.jspdf || window;
-      const doc          = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const today        = new Date();
-      const year         = today.getFullYear();
-      const month        = today.getMonth();
-
-      const [practiceDays, currency, price, teamName] = await Promise.all([
-        Storage().getSetting('practiceDays',     [1, 3, 5]),
-        Storage().getSetting('currency',         '$'),
-        Storage().getSetting('pricePerPractice', 0),
-        Storage().getSetting('teamName',         'Mi Equipo')
-      ]);
-
-      const practiceDates = DS.getPracticeDatesInMonth(year, month, practiceDays);
-      const pastPractices = practiceDates.filter(d => !DS.isFuture(d));
-
-      const allPayments   = await Storage().getPaymentsByAthlete(athlete.id);
-      const allAttendance = await Storage().getAttendanceByAthlete(athlete.id);
-
-      const payMap = {};
-      const attMap = {};
-      allPayments.forEach(p   => { payMap[p.practiceId] = p.status;  });
-      allAttendance.forEach(a => { attMap[a.practiceId] = a.asistio; });
-
-      const PW   = doc.internal.pageSize.getWidth();
-      const PH   = doc.internal.pageSize.getHeight();
-      const M    = 15;
-      const CW   = PW - M * 2;
-      let   y    = M;
-
-      const C = {
-        orange:    [249, 115,  22],
-        dark:      [ 13,  17,  23],
-        gray:      [100, 116, 139],
-        lgray:     [226, 232, 240],
-        white:     [255, 255, 255],
-        green:     [ 34, 197,  94],
-        red:       [239,  68,  68],
-      };
-
-      const setF  = (st, sz) => { doc.setFont('helvetica', st); doc.setFontSize(sz); };
-      const setTC = (...rgb) => doc.setTextColor(...rgb);
-
-      // ── Encabezado naranja ─────────────────────────────────────────────
-      doc.setFillColor(...C.orange);
-      doc.rect(0, 0, PW, 38, 'F');
-      setF('bold', 18); setTC(...C.white);
-      doc.text('Coach Management', M, 14);
-      setF('normal', 10); setTC(255, 220, 180);
-      doc.text(teamName, M, 22);
-      setF('bold', 10); setTC(...C.white);
-      doc.text(`Reporte Individual — ${DS.formatMonth(year, month)}`, PW - M, 14, { align: 'right' });
-      setF('normal', 9); setTC(255, 220, 180);
-      doc.text(`Generado: ${DS.formatDateLong(today)}`, PW - M, 22, { align: 'right' });
-      y = 46;
-
-      // ── Datos del atleta ───────────────────────────────────────────────
-      doc.setFillColor(...C.lgray);
-      doc.roundedRect(M, y, CW, 22, 3, 3, 'F');
-      setF('bold', 15); setTC(...C.dark);
-      doc.text(athlete.name, M + 4, y + 9);
-      setF('normal', 9); setTC(...C.gray);
-      const meta = [
-        athlete.age         ? `Edad: ${athlete.age}`          : null,
-        athlete.parentPhone ? `Tel: ${athlete.parentPhone}`   : null,
-        athlete.ayudaSocial ? '★ Ayuda Social'                 : null,
-      ].filter(Boolean).join('   ');
-      if (meta) doc.text(meta, M + 4, y + 17);
-      y += 28;
-
-      // ── Encabezado de tabla ────────────────────────────────────────────
-      doc.setFillColor(...C.dark);
-      doc.rect(M, y, CW, 8, 'F');
-      setF('bold', 8); setTC(...C.white);
-      doc.text('Fecha',      M + 3,   y + 5);
-      doc.text('Día',        M + 52,  y + 5);
-      doc.text('Asistencia', M + 95,  y + 5);
-      if (!athlete.ayudaSocial) doc.text('Pago', M + 140, y + 5);
-      y += 8;
-
-      let totalAtt = 0, totalPaid = 0, totalUnpaid = 0;
-
-      // Usar la fuente única de verdad para la lógica de pago
-      const Logic = window.CoachApp.Logic;
-
-      practiceDates.forEach((pd, idx) => {
-        if (y > 265) { doc.addPage(); y = 20; }
-        const pid     = DS.getPracticeId(pd);
-        const isFut   = DS.isFuture(pd);
-        const isTod   = DS.isToday(pd);
-        const asistio = attMap[pid];
-        const pago    = payMap[pid];
-
-        // Estado de pago calculado con la regla central:
-        // null = no asistió o ayudaSocial → NO genera deuda
-        const payStatus = Logic.getPaymentStatus(asistio, pago, athlete.ayudaSocial);
-
-        // Fila alternada
-        if (idx % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(M, y-3, CW, 8, 'F'); }
-        if (isTod)          { doc.setFillColor(255, 237, 213); doc.rect(M, y-3, CW, 8, 'F'); }
-
-        const dayName = DS.DAY_NAMES_FULL[DS.jsToIsoDay(pd.getDay())];
-        setF('normal', 8.5); setTC(...(isFut ? C.gray : C.dark));
-        doc.text(DS.formatDateLong(pd), M + 3,  y);
-        doc.text(dayName,               M + 52, y);
-
-        if (!isFut) {
-          // ── Columna de Asistencia ────────────────────────────────────
-          if (asistio === true) {
-            totalAtt++;
-            setF('bold', 8.5); setTC(...C.green);
-            doc.text('✓ Asistió', M + 95, y);
-          } else if (asistio === false) {
-            setF('bold', 8.5); setTC(...C.red);
-            doc.text('✗ No asistió', M + 95, y);
-          } else {
-            setF('normal', 8.5); setTC(...C.gray);
-            doc.text('—', M + 95, y);
-          }
-
-          // ── Columna de Pago ──────────────────────────────────────────
-          // REGLA: solo se muestra si no es ayuda social.
-          // CASO pagó: asistió + pagó → "✓ Pagó"
-          // CASO deuda: asistió + no pagó → "✗ No Pagó"
-          // CASO sin deuda: no asistió / sin registro → "—" (no genera deuda)
-          if (!athlete.ayudaSocial) {
-            if (payStatus === 'paid') {
-              totalPaid++;
-              setF('bold', 8.5); setTC(...C.green);
-              doc.text('✓ Pagó', M + 140, y);
-            } else if (payStatus === 'unpaid') {
-              totalUnpaid++;
-              setF('bold', 8.5); setTC(...C.red);
-              doc.text('✗ No Pagó', M + 140, y);
-            } else {
-              // null = no asistió → sin deuda → celda vacía
-              setF('normal', 8.5); setTC(...C.gray);
-              doc.text('—', M + 140, y);
-            }
-          }
-        } else {
-          setF('italic', 8); setTC(...C.gray);
-          doc.text('Práctica futura', M + 95, y);
-        }
-        y += 8;
-      });
-
-      // ── Separador ─────────────────────────────────────────────────────
-      y += 4;
-      doc.setDrawColor(...C.lgray); doc.setLineWidth(0.4);
-      doc.line(M, y, PW - M, y);
-      y += 8;
-
-      // ── Resumen ────────────────────────────────────────────────────────
-      setF('bold', 11); setTC(...C.dark);
-      doc.text('Resumen del mes', M, y);
-      y += 8;
-
-      // Tarjetas de resumen — incluye "Total Sin Pagar" en rojo
-      const cards = [
-        { lbl: 'Prácticas realizadas', val: String(pastPractices.length), col: C.dark   },
-        { lbl: 'Total asistencias',    val: String(totalAtt),             col: C.green  },
-        ...(!athlete.ayudaSocial ? [
-          { lbl: 'Total pagos',       val: String(totalPaid),                              col: C.green  },
-          { lbl: 'Total sin pagar',   val: String(totalUnpaid),                            col: C.red    },
-          { lbl: 'Recaudado',         val: `${currency}${(totalPaid * price).toFixed(2)}`, col: C.orange }
-        ] : [
-          { lbl: 'Estado', val: 'Ayuda Social', col: C.gray }
-        ])
-      ];
-
-      const cw2 = (CW - (cards.length - 1) * 5) / cards.length;
-      cards.forEach((card, i) => {
-        const cx = M + i * (cw2 + 5);
-        doc.setFillColor(...C.lgray);
-        // La tarjeta "Total sin pagar" tiene fondo rojizo si hay deuda
-        if (card.col === C.red && parseInt(card.val) > 0) {
-          doc.setFillColor(254, 226, 226); // fondo rojo suave
-        }
-        doc.roundedRect(cx, y, cw2, 18, 2, 2, 'F');
-        setF('bold', 13); setTC(...card.col);
-        doc.text(card.val, cx + cw2 / 2, y + 9,  { align: 'center' });
-        setF('normal', 7); setTC(...C.gray);
-        doc.text(card.lbl.toUpperCase(), cx + cw2 / 2, y + 15, { align: 'center' });
-      });
-
-      // ── Pie de página ──────────────────────────────────────────────────
-      setF('normal', 8); setTC(...C.gray);
-      doc.text('Coach Management v1.0.1', M, PH - 8);
-      doc.text(DS.formatDateLong(today), PW - M, PH - 8, { align: 'right' });
-      doc.setDrawColor(...C.lgray); doc.setLineWidth(0.3);
-      doc.line(M, PH - 12, PW - M, PH - 12);
-
-      // ── Guardar ────────────────────────────────────────────────────────
-      const safe = athlete.name.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9]/g, '_');
-      doc.save(`reporte-${safe}-${DS.MONTH_NAMES[month].toLowerCase()}-${year}.pdf`);
-      window.CoachApp.App.showToast('✅ Reporte descargado');
-
-    } catch (err) {
-      console.error('[Athletes] Error al generar reporte:', err);
-      window.CoachApp.App.showToast('❌ Error al generar el reporte', 'error');
-    }
-  };
 
   // ════════════════════════════════════════════════════════════════════════
   // BÚSQUEDA

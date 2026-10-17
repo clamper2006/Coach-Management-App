@@ -1657,3 +1657,44 @@ input, select, textarea { font-family: inherit; }
   color: var(--red);
   opacity: 0.8;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   v1.1.0 — MODAL "CREAR REPORTE" (por atleta)
+   Usa solo variables del tema → funciona en claro y oscuro.
+   ═══════════════════════════════════════════════════════════════════════ */
+.rpt-header-text { min-width: 0; }
+.rpt-subtitle { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.rpt-section-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; margin: 14px 0 8px; }
+
+.rpt-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rpt-seg-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 64px; padding: 10px 8px; background: var(--bg-card); border: 1.5px solid var(--border-subtle); border-radius: var(--radius); color: var(--text-secondary); font-family: var(--font-body); font-size: 13px; font-weight: 600; text-align: center; line-height: 1.25; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.rpt-seg-btn:hover:not(:disabled) { border-color: var(--border); }
+.rpt-seg-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.rpt-seg-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.rpt-seg-icon { font-size: 18px; line-height: 1; }
+
+.rpt-year-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.rpt-year-label { font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.rpt-year-btn { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); font-size: 22px; display: flex; align-items: center; justify-content: center; }
+.rpt-year-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.rpt-month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rpt-month-btn { min-height: 44px; padding: 8px 4px; background: var(--bg-card); border: 1.5px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-body); font-size: 13px; font-weight: 500; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+.rpt-month-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+.rpt-month-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.rpt-count { margin-top: 10px; font-size: 12px; color: var(--text-secondary); text-align: center; }
+
+/* Pie fijo dentro del modal desplazable: el botón siempre queda accesible */
+.rpt-footer { position: sticky; bottom: 0; margin: 14px -20px -20px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0)); background: var(--bg-surface); border-top: 1px solid var(--border-subtle); }
+.rpt-footer .btn-primary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; }
+
+.rpt-btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: rpt-spin 0.7s linear infinite; }
+@keyframes rpt-spin { to { transform: rotate(360deg); } }
+.btn-primary.is-loading:disabled { opacity: 0.85; cursor: progress; }
+
+@media (max-width: 360px) {
+  .rpt-month-btn { font-size: 12px; }
+  .rpt-seg-btn   { font-size: 12px; }
+}

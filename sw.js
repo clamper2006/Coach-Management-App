@@ -3,8 +3,8 @@
  * Estrategia: Cache First para assets, Network First para datos
  */
 
-const CACHE_NAME = 'coach-management-v1.2';
-const CACHE_STATIC = 'coach-static-v1.2';
+const CACHE_NAME = 'coach-management-v1.1.0';
+const CACHE_STATIC = 'coach-static-v1.1.0';
 
 // Archivos críticos para funcionamiento offline
 const STATIC_ASSETS = [
@@ -15,6 +15,10 @@ const STATIC_ASSETS = [
   './manifest.json',
   './utils/storage.js',
   './utils/date-system.js',
+  './utils/logic.js',
+  './utils/theme.js',
+  './utils/zip-lite.js',
+  './utils/athlete-reports.js',
   './utils/pdf-report.js',
   './utils/backup-system.js',
   './components/tutorial.js',
@@ -22,6 +26,8 @@ const STATIC_ASSETS = [
   './components/athletes.js',
   './components/payments.js',
   './components/calendar.js',
+  './components/athlete-calendar.js',
+  './components/report-modal.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/logo.png',

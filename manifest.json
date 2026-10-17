@@ -1,7 +1,7 @@
 {
   "name": "Coach Management",
   "short_name": "Coach Mgmt",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Gestión de pagos y atletas para entrenadores deportivos",
   "start_url": "./index.html",
   "display": "standalone",

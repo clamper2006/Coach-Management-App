@@ -289,7 +289,7 @@ window.CoachApp.PDFReport = (() => {
       doc.setPage(p);
       sf('normal', 8); tc(...C.medGray);
       const fy = PAGE_H - 8;
-      doc.text('Coach Management v1.0.1', M, fy);
+      doc.text('Coach Management v1.1.0', M, fy);
       doc.text(`Página ${p} de ${totalPages}`, PAGE_W / 2, fy, { align: 'center' });
       doc.text(DS.formatDateLong(new Date()), PAGE_W - M, fy, { align: 'right' });
       hLine(fy - 4);
