@@ -56,8 +56,8 @@ input, select, textarea { font-family: inherit; }
 #app {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
   height: 100vh;
+  height: 100dvh;
   max-width: 480px;
   margin: 0 auto;
   background: var(--bg-base);
@@ -1262,8 +1262,8 @@ input, select, textarea { font-family: inherit; }
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
-  max-height: 94dvh;
   max-height: 94vh;
+  max-height: 94dvh;
   overflow-y: auto;
   overflow-x: hidden;
   transform: translateY(100%);
@@ -1686,8 +1686,9 @@ input, select, textarea { font-family: inherit; }
 
 .rpt-count { margin-top: 10px; font-size: 12px; color: var(--text-secondary); text-align: center; }
 
-/* Pie fijo dentro del modal desplazable: el botón siempre queda accesible */
-.rpt-footer { position: sticky; bottom: 0; margin: 14px -20px -20px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0)); background: var(--bg-surface); border-top: 1px solid var(--border-subtle); }
+/* El modal ya es desplazable (#modal-content), así que el botón no necesita
+   quedar fijo: basta con separarlo del contenido para que nada se superponga. */
+.rpt-footer { margin-top: 18px; padding-top: 14px; padding-bottom: env(safe-area-inset-bottom, 0); border-top: 1px solid var(--border-subtle); }
 .rpt-footer .btn-primary { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; }
 
 .rpt-btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: rpt-spin 0.7s linear infinite; }

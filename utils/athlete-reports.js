@@ -339,7 +339,7 @@ window.CoachApp.AthleteReports = (() => {
    * para que subtotales y total cuadren exactamente.
    *
    * @returns {{
-   *   months: {year, month, debtDates: Date[], paidCount: number, subtotalCents: number}[],
+   *   months: {year, month, debtDates: Date[], paidDates: Date[], paidCount: number, subtotalCents: number}[],
    *   periodMonths: {year, month}[],
    *   priceCents: number, totalCents: number, paidCents: number,
    *   debtCount: number, monthsWithDebt: number
@@ -358,22 +358,24 @@ window.CoachApp.AthleteReports = (() => {
         .filter(d => !DS.isFuture(d));
 
       const debtDates = [];
-      let   paidInMonth = 0;
+      const paidDates = [];   // mismo mes: días ya pagados, para marcarlos en verde junto a los rojos
 
       dates.forEach(pd => {
         const pid    = DS.getPracticeId(pd);
         const status = Logic.getPaymentStatus(ctx.attMap[pid], ctx.payMap[pid], athlete.ayudaSocial);
         if (status === 'unpaid') debtDates.push(pd);
-        if (status === 'paid')   paidInMonth++;
+        if (status === 'paid')   paidDates.push(pd);
       });
 
       debtCount += debtDates.length;
-      paidCount += paidInMonth;
+      paidCount += paidDates.length;
 
+      // El calendario solo se muestra para meses con deuda (igual que antes);
+      // paidDates viaja con él para marcar en verde los días ya pagados de ESE mes.
       if (debtDates.length > 0) {
         months.push({
-          year, month, debtDates,
-          paidCount:     paidInMonth,
+          year, month, debtDates, paidDates,
+          paidCount:     paidDates.length,
           subtotalCents: debtDates.length * priceCents
         });
       }
@@ -572,6 +574,7 @@ window.CoachApp.AthleteReports = (() => {
       const days   = new Date(entry.year, entry.month + 1, 0).getDate();               // respeta 28/29/30/31
       const height = calHeight(entry);
       const debtDays = new Set(entry.debtDates.map(d => d.getDate()));
+      const paidDays = new Set((entry.paidDates || []).map(d => d.getDate()));
 
       setDC(...C.lgray); doc.setLineWidth(0.4);
       doc.roundedRect(x, yy, colW, height, 2, 2, 'S');
@@ -592,8 +595,13 @@ window.CoachApp.AthleteReports = (() => {
         const idx = offset + d - 1;
         const cx  = x + 2 + cellW * ((idx % 7) + 0.5);
         const cy  = yy + HEAD + WEEKH + Math.floor(idx / 7) * ROWH + ROWH / 2;
+        // Un día nunca es ambas cosas a la vez (la regla central excluye esa combinación),
+        // pero por claridad visual el rojo (deuda) tiene prioridad si alguna vez coincidieran.
         if (debtDays.has(d)) {
           setFC(...C.red); doc.circle(cx, cy, 2.7, 'F');
+          setF('bold', 7.5); setTC(...C.white);
+        } else if (paidDays.has(d)) {
+          setFC(...C.green); doc.circle(cx, cy, 2.7, 'F');
           setF('bold', 7.5); setTC(...C.white);
         } else {
           setF('normal', 7.5); setTC(...C.dark);
@@ -609,10 +617,11 @@ window.CoachApp.AthleteReports = (() => {
     hLine(y); y += 6;
     setF('bold', 12); setTC(...C.dark);
     doc.text('Calendarios de deuda', M, y);
-    const lx = M + CW;
     setF('normal', 8); setTC(...C.gray);
-    doc.text('Práctica con deuda', lx, y, { align: 'right' });
-    setFC(...C.red); doc.circle(lx - 34, y - 1, 1.6, 'F');
+    doc.text('Pagada', M + CW, y, { align: 'right' });
+    setFC(...C.green); doc.circle(M + CW - 20, y - 1, 1.6, 'F');
+    doc.text('Con deuda', M + CW - 26, y, { align: 'right' });
+    setFC(...C.red); doc.circle(M + CW - 48, y - 1, 1.6, 'F');
     y += 6;
     h.setY(y);
 
